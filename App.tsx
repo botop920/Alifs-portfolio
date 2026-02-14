@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useRef } from 'react';
 
 declare global {
   interface Window {
@@ -7,340 +7,312 @@ declare global {
   }
 }
 
-type Page = 'home' | 'work' | 'about' | 'contact';
-
-const navItems: { id: Page; label: string }[] = [
-  { id: 'home', label: 'Home' },
-  { id: 'work', label: 'Work' },
-  { id: 'about', label: 'About' },
-  { id: 'contact', label: 'Contact' },
-];
+type SceneType = 'hero' | 'work' | 'about' | 'contact';
 
 const workItems = [
   {
-    title: 'Nebula Brand OS',
-    detail: 'Complete product + brand framework with immersive transitions and data storytelling.',
+    title: 'Obsidian Commerce',
+    summary: 'A luxury storefront with layered depth, cinematic transitions, and conversion-focused interactions.',
   },
   {
-    title: 'Pulse Commerce',
-    detail: 'Luxury e-commerce motion language tuned for conversion and product desire.',
+    title: 'Astra Founder OS',
+    summary: 'Decision intelligence workspace with motion-guided navigation and calm visual hierarchy.',
   },
   {
-    title: 'Aether Dashboard',
-    detail: 'Realtime executive command center with cinematic chart interactions.',
+    title: 'Noir Agency Site',
+    summary: 'Brand-forward, performance-first marketing platform with unique identity systems.',
   },
 ];
 
-function useThreeWidget(
-  mountRef: React.MutableRefObject<HTMLDivElement | null>,
-  variant: 'sphere' | 'knots' | 'columns',
-) {
+function useThreeSection(ref: React.MutableRefObject<HTMLDivElement | null>, type: SceneType) {
   useEffect(() => {
     const THREE = window.THREE;
-    if (!THREE || !mountRef.current) {
-      return;
-    }
+    if (!THREE || !ref.current) return;
 
-    const mount = mountRef.current;
-    const w = mount.clientWidth || 400;
-    const h = mount.clientHeight || 300;
+    const mount = ref.current;
+    const width = mount.clientWidth || 500;
+    const height = mount.clientHeight || 340;
 
-    const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true, powerPreference: 'high-performance' });
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.7));
-    renderer.setSize(w, h);
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'high-performance' });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.8));
+    renderer.setSize(width, height);
     mount.appendChild(renderer.domElement);
 
     const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(48, w / h, 0.1, 1000);
-    camera.position.z = 8;
+    const camera = new THREE.PerspectiveCamera(46, width / height, 0.1, 1000);
+    camera.position.set(0, 0, 9);
+
+    const ambient = new THREE.AmbientLight('#99aaff', 0.6);
+    const point = new THREE.PointLight('#88e0ff', 1.1);
+    point.position.set(4, 5, 6);
+    const rim = new THREE.PointLight('#d59fff', 0.9);
+    rim.position.set(-6, -3, -2);
+    scene.add(ambient, point, rim);
 
     const group = new THREE.Group();
     scene.add(group);
 
     const disposers: Array<() => void> = [];
 
-    if (variant === 'sphere') {
-      const g = new THREE.IcosahedronGeometry(2.1, 8);
-      const m = new THREE.PointsMaterial({ color: '#88bbff', size: 0.04, transparent: true, opacity: 0.9 });
-      const points = new THREE.Points(g, m);
-      group.add(points);
+    if (type === 'hero') {
+      const geo = new THREE.IcosahedronGeometry(2.2, 5);
+      const mat = new THREE.MeshStandardMaterial({ color: '#79a4ff', metalness: 0.45, roughness: 0.2, wireframe: true });
+      const mesh = new THREE.Mesh(geo, mat);
+      group.add(mesh);
+      const haloGeo = new THREE.TorusGeometry(3.2, 0.05, 18, 140);
+      const haloMat = new THREE.MeshBasicMaterial({ color: '#bc9aff', transparent: true, opacity: 0.8 });
+      const halo = new THREE.Mesh(haloGeo, haloMat);
+      halo.rotation.x = 1.2;
+      group.add(halo);
       disposers.push(() => {
-        g.dispose();
-        m.dispose();
+        geo.dispose();
+        mat.dispose();
+        haloGeo.dispose();
+        haloMat.dispose();
       });
     }
 
-    if (variant === 'knots') {
-      for (let i = 0; i < 3; i += 1) {
-        const g = new THREE.TorusKnotGeometry(1.2 + i * 0.4, 0.05, 120, 16);
-        const m = new THREE.MeshBasicMaterial({
-          color: i % 2 === 0 ? '#b191ff' : '#77d8ff',
-          transparent: true,
-          opacity: 0.35,
-          wireframe: true,
+    if (type === 'work') {
+      for (let i = 0; i < 40; i += 1) {
+        const geo = new THREE.BoxGeometry(0.16, 0.7 + Math.random() * 3, 0.16);
+        const mat = new THREE.MeshStandardMaterial({
+          color: i % 2 === 0 ? '#76c4ff' : '#d39dff',
+          emissive: i % 2 === 0 ? '#2a4a74' : '#4b2e66',
+          metalness: 0.2,
+          roughness: 0.55,
         });
-        const mesh = new THREE.Mesh(g, m);
-        mesh.rotation.x = i * 0.6;
-        mesh.rotation.y = i * 0.4;
+        const mesh = new THREE.Mesh(geo, mat);
+        mesh.position.set((Math.random() - 0.5) * 8, (Math.random() - 0.5) * 5, (Math.random() - 0.5) * 4);
         group.add(mesh);
         disposers.push(() => {
-          g.dispose();
-          m.dispose();
+          geo.dispose();
+          mat.dispose();
         });
       }
     }
 
-    if (variant === 'columns') {
-      for (let i = 0; i < 30; i += 1) {
-        const g = new THREE.BoxGeometry(0.18, 0.5 + Math.random() * 2.5, 0.18);
-        const m = new THREE.MeshBasicMaterial({
-          color: i % 2 === 0 ? '#7ab5ff' : '#e0a7ff',
+    if (type === 'about') {
+      for (let i = 0; i < 3; i += 1) {
+        const geo = new THREE.TorusKnotGeometry(1.2 + i * 0.42, 0.06, 150, 22);
+        const mat = new THREE.MeshStandardMaterial({
+          color: i % 2 === 0 ? '#9ab0ff' : '#cfa6ff',
+          wireframe: true,
           transparent: true,
-          opacity: 0.55,
+          opacity: 0.75,
         });
-        const mesh = new THREE.Mesh(g, m);
-        mesh.position.x = (Math.random() - 0.5) * 7;
-        mesh.position.y = (Math.random() - 0.5) * 4;
-        mesh.position.z = (Math.random() - 0.5) * 4;
+        const mesh = new THREE.Mesh(geo, mat);
+        mesh.rotation.set(i * 0.7, i * 0.5, i * 0.22);
         group.add(mesh);
         disposers.push(() => {
-          g.dispose();
-          m.dispose();
+          geo.dispose();
+          mat.dispose();
         });
       }
+    }
+
+    if (type === 'contact') {
+      const planeGeo = new THREE.PlaneGeometry(7, 7, 70, 70);
+      const planeMat = new THREE.MeshStandardMaterial({
+        color: '#6f99ff',
+        wireframe: true,
+        transparent: true,
+        opacity: 0.55,
+      });
+      const plane = new THREE.Mesh(planeGeo, planeMat);
+      plane.rotation.x = -1.08;
+      plane.position.y = -1.4;
+      group.add(plane);
+      disposers.push(() => {
+        planeGeo.dispose();
+        planeMat.dispose();
+      });
     }
 
     let raf = 0;
-    const mouse = { x: 0, y: 0 };
+    const pointer = { x: 0, y: 0 };
 
-    const tick = () => {
-      group.rotation.y += 0.003;
-      group.rotation.x += 0.0018;
-      group.rotation.y += mouse.x * 0.02;
-      group.rotation.x += mouse.y * 0.01;
+    const animate = () => {
+      group.rotation.y += 0.003 + pointer.x * 0.008;
+      group.rotation.x += 0.0015 + pointer.y * 0.005;
       renderer.render(scene, camera);
-      raf = window.requestAnimationFrame(tick);
+      raf = window.requestAnimationFrame(animate);
     };
-    tick();
+    animate();
 
     const onMove = (x: number, y: number) => {
-      mouse.x = x / window.innerWidth - 0.5;
-      mouse.y = y / window.innerHeight - 0.5;
+      pointer.x = x / window.innerWidth - 0.5;
+      pointer.y = y / window.innerHeight - 0.5;
     };
 
-    const onMouse = (e: MouseEvent) => onMove(e.clientX, e.clientY);
-    const onTouch = (e: TouchEvent) => {
-      if (e.touches[0]) {
-        onMove(e.touches[0].clientX, e.touches[0].clientY);
-      }
+    const mouseHandler = (e: MouseEvent) => onMove(e.clientX, e.clientY);
+    const touchHandler = (e: TouchEvent) => {
+      if (e.touches[0]) onMove(e.touches[0].clientX, e.touches[0].clientY);
     };
 
-    const onResize = () => {
-      const nw = mount.clientWidth || 400;
-      const nh = mount.clientHeight || 300;
-      camera.aspect = nw / nh;
+    const resizeHandler = () => {
+      const w = mount.clientWidth || 500;
+      const h = mount.clientHeight || 340;
+      camera.aspect = w / h;
       camera.updateProjectionMatrix();
-      renderer.setSize(nw, nh);
+      renderer.setSize(w, h);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.8));
     };
 
-    window.addEventListener('mousemove', onMouse, { passive: true });
-    window.addEventListener('touchmove', onTouch, { passive: true });
-    window.addEventListener('resize', onResize);
+    window.addEventListener('mousemove', mouseHandler, { passive: true });
+    window.addEventListener('touchmove', touchHandler, { passive: true });
+    window.addEventListener('resize', resizeHandler);
 
     return () => {
       window.cancelAnimationFrame(raf);
-      window.removeEventListener('mousemove', onMouse);
-      window.removeEventListener('touchmove', onTouch);
-      window.removeEventListener('resize', onResize);
-      disposers.forEach((d) => d());
+      window.removeEventListener('mousemove', mouseHandler);
+      window.removeEventListener('touchmove', touchHandler);
+      window.removeEventListener('resize', resizeHandler);
+      disposers.forEach((dispose) => dispose());
       renderer.dispose();
       if (renderer.domElement.parentNode === mount) {
         mount.removeChild(renderer.domElement);
       }
     };
-  }, [mountRef, variant]);
+  }, [ref, type]);
 }
 
 const App: React.FC = () => {
-  const [page, setPage] = useState<Page>('home');
+  const appRef = useRef<HTMLDivElement | null>(null);
+  const heroCanvasRef = useRef<HTMLDivElement | null>(null);
+  const workCanvasRef = useRef<HTMLDivElement | null>(null);
+  const aboutCanvasRef = useRef<HTMLDivElement | null>(null);
+  const contactCanvasRef = useRef<HTMLDivElement | null>(null);
 
-  const pageTitle = useMemo(() => {
-    if (page === 'home') return 'Cinematic Portfolio';
-    if (page === 'work') return 'Selected Work';
-    if (page === 'about') return 'About Alif';
-    return 'Contact';
-  }, [page]);
-
-  const shellRef = useRef<HTMLDivElement | null>(null);
-  const pageRef = useRef<HTMLDivElement | null>(null);
-  const heroThreeRef = useRef<HTMLDivElement | null>(null);
-  const workThreeRef = useRef<HTMLDivElement | null>(null);
-  const aboutThreeRef = useRef<HTMLDivElement | null>(null);
-
-  useThreeWidget(heroThreeRef, 'sphere');
-  useThreeWidget(workThreeRef, 'columns');
-  useThreeWidget(aboutThreeRef, 'knots');
+  useThreeSection(heroCanvasRef, 'hero');
+  useThreeSection(workCanvasRef, 'work');
+  useThreeSection(aboutCanvasRef, 'about');
+  useThreeSection(contactCanvasRef, 'contact');
 
   useEffect(() => {
     const gsap = window.gsap;
-    if (!gsap || !shellRef.current || !pageRef.current) return;
+    if (!gsap || !appRef.current) return;
 
     const ctx = gsap.context(() => {
-      gsap.fromTo(
-        '.nav-item',
-        { y: -14, opacity: 0 },
-        { y: 0, opacity: 1, duration: 0.6, stagger: 0.08, ease: 'power3.out' },
-      );
-    }, shellRef);
+      gsap.fromTo('.nav-item', { y: -16, opacity: 0 }, { y: 0, opacity: 1, stagger: 0.08, duration: 0.7, ease: 'power3.out' });
+      gsap.fromTo('.hero-item', { y: 36, opacity: 0 }, { y: 0, opacity: 1, stagger: 0.1, duration: 1, ease: 'power3.out' });
+    }, appRef);
 
-    return () => ctx.revert();
+    const elements = Array.from(document.querySelectorAll<HTMLElement>('.reveal-on-scroll'));
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            gsap.fromTo(
+              entry.target,
+              { y: 40, opacity: 0, scale: 0.98 },
+              { y: 0, opacity: 1, scale: 1, duration: 0.9, ease: 'power3.out' },
+            );
+            observer.unobserve(entry.target);
+          }
+        });
+      },
+      { threshold: 0.2 },
+    );
+
+    elements.forEach((el) => observer.observe(el));
+
+    gsap.to('.float-loop', { y: -10, duration: 2.2, repeat: -1, yoyo: true, ease: 'sine.inOut', stagger: 0.18 });
+
+    return () => {
+      observer.disconnect();
+      ctx.revert();
+    };
   }, []);
 
-  useEffect(() => {
-    const gsap = window.gsap;
-    if (!gsap || !pageRef.current) return;
+  return (
+    <div ref={appRef} className="min-h-screen bg-[#030303] text-zinc-100">
+      <div className="pointer-events-none fixed inset-0 -z-10 bg-[radial-gradient(circle_at_15%_10%,rgba(123,116,255,0.22),transparent_34%),radial-gradient(circle_at_85%_20%,rgba(88,197,255,0.18),transparent_38%),linear-gradient(to_bottom,#060606,#030303)]" />
 
-    const ctx = gsap.context(() => {
-      gsap.fromTo(
-        '.page-reveal',
-        { y: 32, opacity: 0, scale: 0.985 },
-        { y: 0, opacity: 1, scale: 1, duration: 0.85, stagger: 0.07, ease: 'power3.out' },
-      );
+      <header className="sticky top-0 z-50 border-b border-white/10 bg-black/55 backdrop-blur-md">
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-4 sm:px-8">
+          <p className="text-xs uppercase tracking-[0.3em] text-zinc-300">Alif Studio</p>
+          <nav className="flex flex-wrap gap-2">
+            <a href="#home" className="nav-item rounded-full border border-white/20 px-4 py-2 text-xs uppercase tracking-[0.15em] hover:bg-white/10">Home</a>
+            <a href="#work" className="nav-item rounded-full border border-white/20 px-4 py-2 text-xs uppercase tracking-[0.15em] hover:bg-white/10">Work</a>
+            <a href="#about" className="nav-item rounded-full border border-white/20 px-4 py-2 text-xs uppercase tracking-[0.15em] hover:bg-white/10">About</a>
+            <a href="#contact" className="nav-item rounded-full border border-white/20 px-4 py-2 text-xs uppercase tracking-[0.15em] hover:bg-white/10">Contact</a>
+          </nav>
+        </div>
+      </header>
 
-      gsap.fromTo(
-        '.floaty',
-        { y: 0 },
-        { y: -12, duration: 2.2, repeat: -1, yoyo: true, stagger: 0.12, ease: 'sine.inOut' },
-      );
-    }, pageRef);
-
-    return () => ctx.revert();
-  }, [page]);
-
-  const renderPage = () => {
-    if (page === 'home') {
-      return (
-        <section className="grid gap-8 lg:grid-cols-[1.15fr_0.85fr]">
-          <article className="page-reveal rounded-3xl border border-white/10 bg-black/35 p-6 backdrop-blur-md sm:p-10">
-            <p className="text-xs uppercase tracking-[0.35em] text-violet-200/80">Alif · Professional Portfolio</p>
-            <h1 className="mt-4 text-4xl font-semibold leading-tight sm:text-6xl">
-              Multi-page digital experiences with elite motion systems.
-            </h1>
+      <main className="mx-auto max-w-6xl px-5 pb-20 pt-8 sm:px-8 sm:pt-12">
+        <section id="home" className="grid min-h-[92vh] items-center gap-8 lg:grid-cols-[1.1fr_0.9fr]">
+          <article className="hero-item rounded-3xl border border-white/10 bg-black/35 p-6 backdrop-blur-md sm:p-10">
+            <p className="text-xs uppercase tracking-[0.34em] text-violet-200/80">Mind-blowing. Original. Black Theme.</p>
+            <h1 className="mt-4 text-4xl font-semibold leading-tight sm:text-6xl">Now it scrolls, and 3D + GSAP are truly everywhere.</h1>
             <p className="mt-5 max-w-xl text-sm text-zinc-300 sm:text-base">
-              Original, black-theme, high-end design crafted for founders and premium brands. Built with realtime 3D, GSAP motion choreography, and mobile-first precision.
+              This is a professional long-form portfolio experience with dedicated sections, smooth reveal choreography, animated depth, and interactive 3D objects that react to touch and mouse.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
-              <button type="button" onClick={() => setPage('work')} className="rounded-full border border-white/20 bg-white/10 px-5 py-3 text-sm hover:bg-white/20">
-                View Work
-              </button>
-              <button type="button" onClick={() => setPage('contact')} className="rounded-full border border-violet-300/40 px-5 py-3 text-sm text-violet-100 hover:bg-violet-400/20">
-                Hire Me
-              </button>
+              <a href="#work" className="rounded-full border border-white/20 bg-white/10 px-5 py-3 text-sm hover:bg-white/20">Explore Work</a>
+              <a href="#contact" className="rounded-full border border-violet-300/40 px-5 py-3 text-sm text-violet-100 hover:bg-violet-400/20">Let&apos;s Build</a>
             </div>
           </article>
-          <article className="page-reveal rounded-3xl border border-white/10 bg-black/25 p-4 sm:p-6">
-            <div ref={heroThreeRef} className="floaty h-[260px] w-full rounded-2xl bg-black/40 sm:h-[320px]" />
-            <p className="mt-4 text-sm text-zinc-300">Interactive hero object reacts to mouse and touch movement in real time.</p>
+          <article className="hero-item rounded-3xl border border-cyan-300/20 bg-black/35 p-4 sm:p-6">
+            <div ref={heroCanvasRef} className="float-loop h-[320px] w-full rounded-2xl bg-black/45 sm:h-[430px]" />
+            <p className="mt-4 text-sm text-zinc-300">Hero 3D form with real-time interaction and continuous motion.</p>
           </article>
         </section>
-      );
-    }
 
-    if (page === 'work') {
-      return (
-        <section className="grid gap-6 lg:grid-cols-[0.95fr_1.05fr]">
-          <article className="page-reveal rounded-3xl border border-white/10 bg-black/35 p-5 sm:p-7">
-            <h2 className="text-3xl font-semibold sm:text-4xl">Selected Work</h2>
-            <p className="mt-3 text-sm text-zinc-300">Every project is treated as a cinematic product launch, not a template delivery.</p>
+        <section id="work" className="reveal-on-scroll grid min-h-[90vh] items-center gap-8 py-20 lg:grid-cols-[1fr_1fr]">
+          <article className="rounded-3xl border border-white/10 bg-black/35 p-6 sm:p-8">
+            <h2 className="text-3xl font-semibold sm:text-5xl">Selected Work</h2>
+            <p className="mt-3 text-sm text-zinc-300">Premium digital products engineered with design leadership and motion precision.</p>
             <div className="mt-6 space-y-4">
               {workItems.map((item) => (
-                <div key={item.title} className="page-reveal rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+                <div key={item.title} className="float-loop rounded-2xl border border-white/10 bg-white/[0.03] p-4">
                   <h3 className="text-xl font-medium">{item.title}</h3>
-                  <p className="mt-2 text-sm text-zinc-300">{item.detail}</p>
+                  <p className="mt-2 text-sm text-zinc-300">{item.summary}</p>
                 </div>
               ))}
             </div>
           </article>
-          <article className="page-reveal rounded-3xl border border-white/10 bg-black/25 p-4 sm:p-6">
-            <div ref={workThreeRef} className="floaty h-[320px] w-full rounded-2xl bg-black/40 sm:h-[460px]" />
-            <p className="mt-4 text-sm text-zinc-300">3D structural bars visualize velocity, scale, and product momentum.</p>
+          <article className="rounded-3xl border border-cyan-300/20 bg-black/30 p-4 sm:p-6">
+            <div ref={workCanvasRef} className="h-[340px] w-full rounded-2xl bg-black/50 sm:h-[470px]" />
+            <p className="mt-4 text-sm text-zinc-300">3D structural bars animation reinforcing momentum and product scale.</p>
           </article>
         </section>
-      );
-    }
 
-    if (page === 'about') {
-      return (
-        <section className="grid gap-6 lg:grid-cols-[1fr_1fr]">
-          <article className="page-reveal rounded-3xl border border-white/10 bg-black/35 p-6 sm:p-8">
-            <h2 className="text-3xl font-semibold sm:text-4xl">About</h2>
+        <section id="about" className="reveal-on-scroll grid min-h-[90vh] items-center gap-8 py-20 lg:grid-cols-[1fr_1fr]">
+          <article className="rounded-3xl border border-white/10 bg-black/35 p-6 sm:p-8">
+            <h2 className="text-3xl font-semibold sm:text-5xl">About</h2>
             <p className="mt-4 text-sm leading-relaxed text-zinc-300 sm:text-base">
-              I combine design direction, frontend engineering, and motion design into one focused workflow. The result is a professional portfolio ecosystem: not just one page, but a full navigable experience with distinctive interactions.
+              I combine strategy, UI, frontend engineering, and motion design in one seamless pipeline. The result is an authentic portfolio presence with cinematic interactions and serious performance.
             </p>
             <div className="mt-6 grid gap-3 sm:grid-cols-2">
-              <div className="page-reveal rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-sm">10+ premium launches</div>
-              <div className="page-reveal rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-sm">3D + GSAP specialist</div>
-              <div className="page-reveal rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-sm">Mobile-first motion UX</div>
-              <div className="page-reveal rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-sm">Performance-minded builds</div>
+              <div className="float-loop rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-sm">10+ premium launches</div>
+              <div className="float-loop rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-sm">GSAP motion architecture</div>
+              <div className="float-loop rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-sm">Three.js integration</div>
+              <div className="float-loop rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-sm">Mobile-first optimization</div>
             </div>
           </article>
-          <article className="page-reveal rounded-3xl border border-white/10 bg-black/25 p-4 sm:p-6">
-            <div ref={aboutThreeRef} className="floaty h-[320px] w-full rounded-2xl bg-black/40 sm:h-[420px]" />
-            <p className="mt-4 text-sm text-zinc-300">Multiple torus-knot forms create a dynamic signature identity object.</p>
+          <article className="rounded-3xl border border-violet-300/20 bg-black/30 p-4 sm:p-6">
+            <div ref={aboutCanvasRef} className="h-[340px] w-full rounded-2xl bg-black/50 sm:h-[450px]" />
+            <p className="mt-4 text-sm text-zinc-300">Nested torus-knot structures generate a signature identity in 3D.</p>
           </article>
         </section>
-      );
-    }
 
-    return (
-      <section className="grid gap-6 lg:grid-cols-[1fr_1fr]">
-        <article className="page-reveal rounded-3xl border border-white/10 bg-black/35 p-6 sm:p-9">
-          <h2 className="text-3xl font-semibold sm:text-4xl">Contact</h2>
-          <p className="mt-4 text-sm text-zinc-300 sm:text-base">
-            Let’s build a professional portfolio, SaaS launch site, or product experience with advanced 3D + GSAP interactions.
-          </p>
-          <a href="mailto:hello@alifdesign.dev" className="page-reveal mt-7 inline-flex rounded-full border border-white/20 bg-white/10 px-6 py-3 text-sm hover:bg-white/20">
-            hello@alifdesign.dev
-          </a>
-        </article>
-        <article className="page-reveal rounded-3xl border border-violet-300/25 bg-gradient-to-b from-violet-400/15 to-cyan-400/10 p-6 sm:p-9">
-          <p className="text-xs uppercase tracking-[0.3em] text-violet-100">Availability</p>
-          <h3 className="mt-3 text-2xl font-semibold">Open for selected projects</h3>
-          <p className="mt-4 text-sm text-zinc-200">
-            Strategy, UI, motion direction, and frontend implementation — from first concept to polished production.
-          </p>
-        </article>
-      </section>
-    );
-  };
-
-  return (
-    <div ref={shellRef} className="min-h-screen bg-[#020202] text-zinc-100">
-      <div className="pointer-events-none fixed inset-0 -z-10 bg-[radial-gradient(circle_at_20%_15%,rgba(124,118,255,0.2),transparent_35%),radial-gradient(circle_at_80%_20%,rgba(75,193,255,0.16),transparent_38%),linear-gradient(to_bottom,#050505,#020202)]" />
-
-      <header className="mx-auto flex w-full max-w-6xl items-center justify-between px-5 pt-6 sm:px-8 sm:pt-10">
-        <h1 className="page-reveal text-sm uppercase tracking-[0.28em] text-zinc-300">Alif Studio</h1>
-        <nav className="flex flex-wrap justify-end gap-2 sm:gap-3">
-          {navItems.map((item) => (
-            <button
-              key={item.id}
-              type="button"
-              onClick={() => setPage(item.id)}
-              className={`nav-item rounded-full border px-4 py-2 text-xs uppercase tracking-[0.18em] transition ${
-                page === item.id
-                  ? 'border-cyan-300/60 bg-cyan-400/10 text-cyan-100'
-                  : 'border-white/15 bg-white/[0.04] text-zinc-300 hover:bg-white/[0.1]'
-              }`}
-            >
-              {item.label}
-            </button>
-          ))}
-        </nav>
-      </header>
-
-      <main ref={pageRef} className="mx-auto mt-8 w-full max-w-6xl px-5 pb-16 sm:px-8 sm:pb-20">
-        <p className="page-reveal mb-4 text-xs uppercase tracking-[0.25em] text-zinc-500">{pageTitle}</p>
-        {renderPage()}
+        <section id="contact" className="reveal-on-scroll grid min-h-[82vh] items-center gap-8 py-20 lg:grid-cols-[1fr_1fr]">
+          <article className="rounded-3xl border border-white/10 bg-black/35 p-6 sm:p-8">
+            <p className="text-xs uppercase tracking-[0.25em] text-zinc-400">Contact</p>
+            <h2 className="mt-3 text-3xl font-semibold sm:text-5xl">Ready for something unforgettable?</h2>
+            <p className="mt-4 text-sm text-zinc-300 sm:text-base">
+              Let&apos;s craft your portfolio or product experience with deeply polished animation, a premium black visual language, and top-tier responsiveness.
+            </p>
+            <a href="mailto:hello@alifdesign.dev" className="mt-7 inline-flex rounded-full border border-white/20 bg-white/10 px-6 py-3 text-sm hover:bg-white/20">
+              hello@alifdesign.dev
+            </a>
+          </article>
+          <article className="rounded-3xl border border-cyan-300/20 bg-black/30 p-4 sm:p-6">
+            <div ref={contactCanvasRef} className="h-[340px] w-full rounded-2xl bg-black/50 sm:h-[440px]" />
+            <p className="mt-4 text-sm text-zinc-300">Animated 3D wire plane closes the journey with a futuristic stage feel.</p>
+          </article>
+        </section>
       </main>
     </div>
   );
