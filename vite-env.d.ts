@@ -22,9 +22,11 @@ declare module '*.json' {
 }
 
 // Support for process.env.API_KEY
-declare const process: {
-  env: {
+// We augment the NodeJS.ProcessEnv interface instead of redeclaring 'process' 
+// to avoid conflicts with existing definitions (e.g. from @types/node).
+declare namespace NodeJS {
+  interface ProcessEnv {
     API_KEY: string;
     [key: string]: string | undefined;
   }
-};
+}
