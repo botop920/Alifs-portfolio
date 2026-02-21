@@ -1,5 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
-
+import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 type Cursor = {
   x: number;
   y: number;
@@ -26,11 +25,18 @@ const projects = [
 const App: React.FC = () => {
   const [cursor, setCursor] = useState<Cursor>({ x: -100, y: -100 });
   const [hovering, setHovering] = useState(false);
+  const [reducedMotion, setReducedMotion] = useState(false);
+  const appRef = useRef<HTMLDivElement | null>(null);
 
-  const reducedMotion = useMemo(
-    () => window.matchMedia('(prefers-reduced-motion: reduce)').matches,
-    []
-  );
+  useEffect(() => {
+    const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const updateMotionPreference = () => setReducedMotion(mediaQuery.matches);
+
+    updateMotionPreference();
+    mediaQuery.addEventListener('change', updateMotionPreference);
+
+    return () => mediaQuery.removeEventListener('change', updateMotionPreference);
+  }, []);
 
   useEffect(() => {
     if (reducedMotion || window.matchMedia('(pointer: coarse)').matches) {
@@ -45,19 +51,79 @@ const App: React.FC = () => {
     return () => window.removeEventListener('mousemove', onMove);
   }, [reducedMotion]);
 
+  useLayoutEffect(() => {
+    if (reducedMotion || !appRef.current) {
+      return;
+    }
+
+    const gsapLib = (window as Window & { gsap?: any }).gsap;
+    const scrollTriggerLib = (window as Window & { ScrollTrigger?: unknown }).ScrollTrigger;
+
+    if (!gsapLib || !scrollTriggerLib) {
+      return;
+    }
+
+    gsapLib.registerPlugin(scrollTriggerLib);
+
+    const context = gsapLib.context(() => {
+      const introTimeline = gsapLib.timeline({ defaults: { ease: 'power3.out' } });
+
+      introTimeline
+        .from('.hero-intro', { y: 30, opacity: 0, duration: 0.8 })
+        .from('.hero-line', { y: 70, opacity: 0, duration: 1, stagger: 0.12 }, '-=0.35')
+        .from('.hero-cta', { y: 25, opacity: 0, duration: 0.6, stagger: 0.1 }, '-=0.4')
+        .from('.hero-location', { y: 18, opacity: 0, duration: 0.5 }, '-=0.3');
+
+      gsapLib.from('.about-animate', {
+        y: 55,
+        opacity: 0,
+        duration: 0.8,
+        stagger: 0.16,
+        ease: 'power2.out',
+        scrollTrigger: {
+          trigger: '#about',
+          start: 'top 78%',
+        },
+      });
+
+      gsapLib.from('.work-animate', {
+        y: 70,
+        opacity: 0,
+        duration: 0.9,
+        stagger: 0.18,
+        ease: 'power2.out',
+        scrollTrigger: {
+          trigger: '#work',
+          start: 'top 78%',
+        },
+      });
+
+      gsapLib.to('.hero-parallax', {
+        yPercent: 28,
+        opacity: 0.3,
+        ease: 'none',
+        scrollTrigger: {
+          trigger: '#top',
+          start: 'top top',
+          end: 'bottom top',
+          scrub: true,
+        },
+      });
+    }, appRef);
+
+    return () => context.revert();
+  }, [reducedMotion]);
+
   const hoverProps = {
     onMouseEnter: () => setHovering(true),
     onMouseLeave: () => setHovering(false),
   };
 
   return (
-    <div className="bg-darkBg text-white selection:bg-brandRed selection:text-white">
+    <div ref={appRef} className="bg-darkBg text-white selection:bg-brandRed selection:text-white">
       {!reducedMotion && (
         <>
-          <div
-            className="cursor-dot"
-            style={{ transform: `translate(${cursor.x}px, ${cursor.y}px)` }}
-          />
+          <div className="cursor-dot" style={{ transform: `translate(${cursor.x}px, ${cursor.y}px)` }} />
           <div
             className={`cursor-outline ${hovering ? 'cursor-outline--hover' : ''}`}
             style={{ transform: `translate(${cursor.x}px, ${cursor.y}px)` }}
@@ -72,9 +138,15 @@ const App: React.FC = () => {
           </a>
 
           <div className="hidden items-center gap-8 text-sm text-gray-300 md:flex">
-            <a href="#work" className="hover:text-white" {...hoverProps}>Work</a>
-            <a href="#about" className="hover:text-white" {...hoverProps}>About</a>
-            <a href="#contact" className="hover:text-white" {...hoverProps}>Contact</a>
+            <a href="#work" className="hover:text-white" {...hoverProps}>
+              Work
+            </a>
+            <a href="#about" className="hover:text-white" {...hoverProps}>
+              About
+            </a>
+            <a href="#contact" className="hover:text-white" {...hoverProps}>
+              Contact
+            </a>
           </div>
 
           <a
@@ -89,33 +161,33 @@ const App: React.FC = () => {
 
       <main id="top" className="mx-auto w-full max-w-[1600px]">
         <section className="relative flex min-h-screen flex-col items-center justify-center px-4 pt-24 text-center">
-          <p className="mb-5 text-sm font-medium text-gray-400 md:text-base">
+          <p className="hero-intro mb-5 text-sm font-medium text-gray-400 md:text-base">
             👋 my name is Alif Shahariar and I am a freelance
           </p>
 
-          <h1 className="hero-title font-display uppercase tracking-tight">Web Developer</h1>
-          <h1 className="hero-title -mt-4 font-display uppercase tracking-tight text-outline-red">
+          <h1 className="hero-title hero-line hero-parallax font-display uppercase tracking-tight">Web Developer</h1>
+          <h1 className="hero-title hero-line hero-parallax -mt-4 font-display uppercase tracking-tight text-outline-red">
             & UI Designer
           </h1>
 
           <div className="mt-12 flex w-full max-w-xl flex-col gap-4 sm:flex-row sm:justify-center">
             <a
               href="#work"
-              className="rounded-md border border-brandRed bg-brandRed px-8 py-3 text-sm font-medium transition hover:bg-transparent hover:text-brandRed"
+              className="hero-cta rounded-md border border-brandRed bg-brandRed px-8 py-3 text-sm font-medium transition hover:bg-transparent hover:text-brandRed"
               {...hoverProps}
             >
               View Projects
             </a>
             <a
               href="#contact"
-              className="rounded-md border border-white px-8 py-3 text-sm font-medium transition hover:bg-white hover:text-black"
+              className="hero-cta rounded-md border border-white px-8 py-3 text-sm font-medium transition hover:bg-white hover:text-black"
               {...hoverProps}
             >
               Contact Me
             </a>
           </div>
 
-          <p className="mt-10 text-sm text-gray-400 md:absolute md:bottom-10 md:left-12">
+          <p className="hero-location mt-10 text-sm text-gray-400 md:absolute md:bottom-10 md:left-12">
             based in <span className="text-white">Natore, Bangladesh.</span>
           </p>
         </section>
@@ -130,14 +202,16 @@ const App: React.FC = () => {
         <section id="about" className="mx-auto w-full max-w-7xl px-6 py-24 md:px-12">
           <div className="grid gap-12 md:grid-cols-12">
             <div className="md:col-span-4">
-              <h2 className="mb-4 text-xs font-semibold uppercase tracking-[0.2em] text-brandRed">01 // Expertise</h2>
+              <h2 className="about-animate mb-4 text-xs font-semibold uppercase tracking-[0.2em] text-brandRed">
+                01 // Expertise
+              </h2>
             </div>
             <div className="md:col-span-8">
-              <h3 className="mb-8 text-3xl leading-tight md:text-5xl">
-                I build digital experiences that are <span className="text-outline-red">fast</span>, accessible, and visually
-                stunning.
+              <h3 className="about-animate mb-8 text-3xl leading-tight md:text-5xl">
+                I build digital experiences that are <span className="text-outline-red">fast</span>, accessible, and
+                visually stunning.
               </h3>
-              <div className="mt-10 grid gap-8 border-t border-gray-800 pt-10 sm:grid-cols-2">
+              <div className="about-animate mt-10 grid gap-8 border-t border-gray-800 pt-10 sm:grid-cols-2">
                 <div>
                   <h4 className="mb-3 text-xl font-bold">Frontend Development</h4>
                   <p className="text-sm leading-relaxed text-gray-400">
@@ -158,10 +232,12 @@ const App: React.FC = () => {
         </section>
 
         <section id="work" className="mx-auto w-full max-w-7xl px-6 py-16 md:px-12">
-          <h2 className="mb-12 text-xs font-semibold uppercase tracking-[0.2em] text-brandRed">02 // Selected Work</h2>
+          <h2 className="work-animate mb-12 text-xs font-semibold uppercase tracking-[0.2em] text-brandRed">
+            02 // Selected Work
+          </h2>
           <div className="space-y-14">
             {projects.map((project) => (
-              <article key={project.name} className="group">
+              <article key={project.name} className="work-animate group">
                 <div className="relative h-[40vh] overflow-hidden rounded-xl bg-darkElevated md:h-[56vh]">
                   <div className="absolute inset-0 bg-gradient-to-br from-gray-900 to-black opacity-60 transition group-hover:opacity-100" />
                   <div className="absolute inset-0 flex items-center justify-center px-4 text-center">
@@ -200,9 +276,15 @@ const App: React.FC = () => {
           </a>
 
           <div className="mt-16 flex justify-center gap-8 text-gray-500">
-            <a href="https://github.com" className="hover:text-white" {...hoverProps}>Github</a>
-            <a href="https://www.linkedin.com" className="hover:text-white" {...hoverProps}>LinkedIn</a>
-            <a href="https://x.com" className="hover:text-white" {...hoverProps}>Twitter</a>
+            <a href="https://github.com" className="hover:text-white" {...hoverProps}>
+              Github
+            </a>
+            <a href="https://www.linkedin.com" className="hover:text-white" {...hoverProps}>
+              LinkedIn
+            </a>
+            <a href="https://x.com" className="hover:text-white" {...hoverProps}>
+              Twitter
+            </a>
           </div>
 
           <p className="mt-10 text-sm text-gray-700">© 2026 Alif Shahariar. All rights reserved.</p>
